@@ -3,14 +3,16 @@ import { model, Schema } from 'mongoose'
 export interface UserInterface {
   discordId: string,
   reminder: boolean,
-  reminderTime: string
+  reminderTime: string,
+  reminderChannel?: string
 }
 
 export const userSchema = new Schema<UserInterface>(
   {
     discordId: String,
     reminder: { type: Boolean, default: false },
-    reminderTime: { type: String, default: '00:00' }
+    reminderTime: { type: String, default: '00:00' },
+    reminderChannel: { type: String }
   }
 )
 

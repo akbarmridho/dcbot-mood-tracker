@@ -1,21 +1,12 @@
-import { REST } from '@discordjs/rest'
-import { commandList } from '../commands/_command-list'
-import { Routes } from 'discord-api-types/v9'
+import { Client } from 'discord.js'
+import { scheduleReminder } from '../jobs/scheduleReminder'
+import { scheduleReminderJob } from '../jobs/scheduleReminderJob'
+import { updateCommands } from '../jobs/updateCommands'
 
-export const onReady = async () => {
-  const rest = new REST({ version: '9' }).setToken(
-    process.env.DISCORD_BOT_TOKEN!
-  )
-
-  const commandData = commandList.map((command) => command.data.toJSON())
-
-  await rest.put(
-    Routes.applicationGuildCommands(
-      process.env.DISCORD_CLIENT_ID!,
-      process.env.DISCORD_SERVER_ID!
-    ),
-    { body: commandData }
-  )
+export const onReady = async (client:Client) => {
+  await updateCommands()
+  await scheduleReminderJob(client)
+  await scheduleReminder(client)
 
   console.log('Bot ready')
 }
