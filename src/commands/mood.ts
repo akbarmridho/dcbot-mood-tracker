@@ -1,4 +1,5 @@
 import { SlashCommandBuilder } from '@discordjs/builders'
+import dayjs from 'dayjs'
 import { MessageActionRow, MessageSelectMenu, MessageSelectOptionData } from 'discord.js'
 import { recordModel } from '../database/models/record'
 import { getUser } from '../database/models/user'
@@ -120,20 +121,37 @@ export const mood: Command = {
       await messageEmotionSource?.edit({ content: `Sumber emosi anda adalah ${emotionSources?.values.join(', ')}`, components: [] })
 
       const user = await getUser(interaction.user.id)
-      await recordModel.create({
-        discordId: user.discordId,
-        emotion: emotions?.values,
-        emotionSource: emotionSources?.values,
-        moodLevel: rate
-      })
+
+      const currentRecord = await recordModel.findOne({
+        createdAt: {
+          $gte: dayjs().hour(0).minute(0).second(0).millisecond(0).toDate(),
+          $lte: dayjs().hour(0).minute(0).second(0).millisecond(0).add(1, 'day').toDate()
+        },
+        discordId: user.discordId
+      }).exec()
+
+      if (currentRecord) {
+        currentRecord.discordId = user.discordId
+        currentRecord.emotion = emotions?.values!
+        currentRecord.emotionSource = emotionSources?.values!
+        currentRecord.moodLevel = rate!
+        await currentRecord.save()
+        await interaction.followUp('Ada telah mengisi catatan hari ini sehingga catatan lama akan diperbarui.')
+      } else {
+        await recordModel.create({
+          discordId: user.discordId,
+          emotion: emotions?.values,
+          emotionSource: emotionSources?.values,
+          moodLevel: rate
+        })
+        await interaction.followUp('Mood berhasil tercatat!')
+      }
 
       if (user.reminder) {
         if (jobs.has(user.discordId)) {
           jobs.get(user.discordId)?.stop()
         }
       }
-
-      await interaction.followUp('Mood berhasil tercatat!')
     } catch (error) {
       await interaction.followUp('Input gagal karena batas waktu untuk menjawab telah berakhir')
     }
