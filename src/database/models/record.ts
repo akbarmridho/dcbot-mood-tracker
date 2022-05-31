@@ -1,6 +1,6 @@
-import { model, Schema } from 'mongoose'
+import { model, Schema, SchemaTimestampsConfig } from 'mongoose'
 
-export interface RecordInterface {
+export interface RecordInterface extends SchemaTimestampsConfig{
   discordId: string,
   emotion: string[],
   emotionSource: string[],

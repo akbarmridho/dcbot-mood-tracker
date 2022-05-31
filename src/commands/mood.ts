@@ -3,6 +3,7 @@ import { MessageActionRow, MessageSelectMenu, MessageSelectOptionData } from 'di
 import { recordModel } from '../database/models/record'
 import { getUser } from '../database/models/user'
 import { Command } from '../interfaces/command'
+import { jobs } from '../jobs/scheduleReminderJob'
 
 const moodRate = new Map<string, number>()
 moodRate.set('1️⃣', 1)
@@ -125,6 +126,12 @@ export const mood: Command = {
         emotionSource: emotionSources?.values,
         moodLevel: rate
       })
+
+      if (user.reminder) {
+        if (jobs.has(user.discordId)) {
+          jobs.get(user.discordId)?.stop()
+        }
+      }
 
       await interaction.followUp('Mood berhasil tercatat!')
     } catch (error) {
