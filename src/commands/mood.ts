@@ -4,31 +4,40 @@ import { MessageActionRow, MessageSelectMenu, MessageSelectOptionData } from 'di
 import { recordModel } from '../database/models/record'
 import { getUser } from '../database/models/user'
 import { Command } from '../interfaces/command'
+import { ONE_EMOJI, TWO_EMOJI, THREE_EMOJI, FOUR_EMOJI, FIVE_EMOJI } from '../interfaces/emojis'
 import { jobs } from '../jobs/scheduleReminderJob'
+import { alternateJoin } from '../utils/alternate-join'
+import { shuffle } from '../utils/shuffle-array'
 
 const moodRate = new Map<string, number>()
-moodRate.set('1️⃣', 1)
-moodRate.set('2️⃣', 2)
-moodRate.set('3️⃣', 3)
-moodRate.set('4️⃣', 4)
-moodRate.set('5️⃣', 5)
 
-const emotions = ['antusias', 'gembira', 'takjub', 'semangat', 'bangga', 'penuh cinta', 'santai', 'tenang', 'puas',
-  'marah', 'takut', 'stress', 'waspada', 'kesal', 'malu', 'cemas', 'lesu', 'sedih', 'duka', 'bosan', 'kesepian', 'bingung']
+moodRate.set(ONE_EMOJI, 1)
+moodRate.set(TWO_EMOJI, 2)
+moodRate.set(THREE_EMOJI, 3)
+moodRate.set(FOUR_EMOJI, 4)
+moodRate.set(FIVE_EMOJI, 5)
 
-const emotionOptions : MessageSelectOptionData[] = []
-
-for (const emotion of emotions) {
-  emotionOptions.push({ label: emotion, value: emotion })
+const getEmotionOptions = () => {
+  const emotions = shuffle(['antusias', 'gembira', 'takjub', 'semangat', 'bangga', 'penuh cinta', 'santai', 'tenang', 'puas',
+    'marah', 'takut', 'stress', 'waspada', 'kesal', 'malu', 'cemas', 'lesu', 'sedih', 'duka', 'bosan', 'kesepian', 'bingung'])
+  const emotionOptions : MessageSelectOptionData[] = []
+  for (const emotion of emotions) {
+    emotionOptions.push({ label: emotion, value: emotion })
+  }
+  return emotionOptions
 }
 
-const emotionSource = ['keluarga', 'pekerjaan', 'teman', 'percintaan', 'kesehatan', 'pendidikan', 'tidur', 'perjalanan', 'bersantai', 'makanan',
-  'olahraga', 'hobi', 'cuaca', 'belanja', 'hiburan', 'keuangan', 'ibadah']
+const getEmotionSourceOptions = () => {
+  const emotionSource = shuffle(['keluarga', 'pekerjaan', 'teman', 'percintaan', 'kesehatan', 'pendidikan', 'tidur', 'perjalanan', 'bersantai', 'makanan',
+    'olahraga', 'hobi', 'cuaca', 'belanja', 'hiburan', 'keuangan', 'ibadah'])
 
-const emotionSourceOptions: MessageSelectOptionData[] = []
+  const emotionSourceOptions: MessageSelectOptionData[] = []
 
-for (const emotion of emotionSource) {
-  emotionSourceOptions.push({ label: emotion, value: emotion })
+  for (const emotion of emotionSource) {
+    emotionSourceOptions.push({ label: emotion, value: emotion })
+  }
+
+  return emotionSourceOptions
 }
 
 export const mood: Command = {
@@ -69,7 +78,7 @@ export const mood: Command = {
           .setPlaceholder('Nothing selected')
           .setMinValues(1)
           .setMaxValues(5)
-          .addOptions(emotionOptions)
+          .addOptions(getEmotionOptions())
       )
 
       const messageEmotion = await interaction.channel?.messages.fetch((
@@ -88,7 +97,7 @@ export const mood: Command = {
         time: 30_000
       })
 
-      await messageEmotion?.edit({ content: `Emosi anda adalah ${emotions?.values.join(', ')}`, components: [] })
+      await messageEmotion?.edit({ content: `Emosi anda adalah ${alternateJoin(emotions?.values)}`, components: [] })
 
       const emotionSourceRow = new MessageActionRow().addComponents(
         new MessageSelectMenu()
@@ -96,7 +105,7 @@ export const mood: Command = {
           .setPlaceholder('Nothing selected')
           .setMinValues(1)
           .setMaxValues(5)
-          .addOptions(emotionSourceOptions)
+          .addOptions(getEmotionSourceOptions())
       )
 
       const messageEmotionSource = await interaction.channel?.messages.fetch(
@@ -118,7 +127,7 @@ export const mood: Command = {
         time: 30_000
       })
 
-      await messageEmotionSource?.edit({ content: `Sumber emosi anda adalah ${emotionSources?.values.join(', ')}`, components: [] })
+      await messageEmotionSource?.edit({ content: `Sumber emosi anda adalah ${alternateJoin(emotionSources?.values)}`, components: [] })
 
       const user = await getUser(interaction.user.id)
 

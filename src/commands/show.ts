@@ -1,42 +1,43 @@
 import { SlashCommandBuilder } from '@discordjs/builders'
-import { getUser } from '../database/models/user'
+import dayjs from 'dayjs'
+import customParseFormat from 'dayjs/plugin/customParseFormat'
+import { MessageEmbed } from 'discord.js'
+import { getRecordRange } from '../database/models/record'
 import { Command } from '../interfaces/command'
+import { alternateJoin } from '../utils/alternate-join'
+
+dayjs.extend(customParseFormat)
 
 export const show: Command = {
   data: new SlashCommandBuilder()
     .setName('show')
     .setDescription('Show a mood record details.')
-    .addBooleanOption(option => option.setName('remind')
-      .setDescription('Set the reminder on or off')
-      .setRequired(true))
-    .addStringOption(option => option.setName('time')
-      .setDescription('Time for the bot to remind you in HH:MM format')
+    .addStringOption(option => option.setName('date')
+      .setDescription('Date in DD-MM-YYYY format')
       .setRequired(true)),
   async run (interaction) {
     await interaction.deferReply()
-    const remind = interaction.options.getBoolean('remind', true)
 
-    try {
-      const [hour, minute] = interaction.options.getString('time', true).split(':')
+    const date = dayjs(interaction.options.getString('date', true), ['DD-MM-YYYY', 'D-M-YYYY'], true)
 
-      if (hour === undefined || hour === null || minute === undefined || minute === null) throw Error()
+    if (date.isValid()) {
+      const records = await getRecordRange(interaction.user.id, date.startOf('day'), date.endOf('day'))
 
-      const validHour = parseInt(hour) >= 0 && parseInt(hour) <= 23
-      const validMinute = parseInt(minute) >= 0 && parseInt(minute) <= 60
+      if (records.length === 0) {
+        await interaction.editReply(`Tidak ditemukan riwayat pada tanggal ${date.format('DD-MM-YYYY')}.`)
+      } else {
+        const embed = new MessageEmbed()
+        embed.setAuthor({ name: interaction.user.tag, iconURL: interaction.user.displayAvatarURL() })
+        embed.setTitle('User Mood Record')
+        embed.addField('Tanggal', date.format('DD-MM-YYYY'))
+        embed.addField('Mood level', records[0].moodLevel.toString())
+        embed.addField('Emosi yang dirasakan', alternateJoin(records[0].emotion))
+        embed.addField('Sumber emosi', alternateJoin(records[0].emotionSource))
 
-      if (validHour && validMinute) {
-        if (!interaction.channel) throw Error()
-
-        const user = await getUser(interaction.user.id)
-        user.reminderTime = interaction.options.getString('time', true)
-        user.reminderChannel = interaction.channel.id
-        user.reminder = remind
-        await user.save()
-
-        interaction.editReply(`Reminder has ben set every ${hour}:${minute}`)
+        await interaction.editReply({ embeds: [embed] })
       }
-    } catch (error) {
-      interaction.editReply('Masukan tidak valid!')
+    } else {
+      await interaction.editReply('Masukan tidak valid!')
     }
   }
 }
