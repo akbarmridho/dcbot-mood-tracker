@@ -19,7 +19,7 @@ export const scheduleReminderJob = async (client:Client) => {
   })
 
   const records = (await recordModel.find({
-    createdAt: { $gte: now.hour(0).minute(0).second(0).millisecond(0).toDate() },
+    createdAt: { $gte: now.startOf('day').toDate() },
     discordId: {
       $in: users.map(user => {
         return user.discordId
